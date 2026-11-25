@@ -48,6 +48,7 @@ API キー不要。DL は利用側の任意。
 - `transactionDetails:full` は公開 endpoint で拒否される block があり、その場合は `signatures` に落ちる (manifest に明記)
 - 100000 slot/run 上限。それ以上は複数 run に分割
 - slot の timestamp は blockTime (Unix 秒)。最新 slot 付近は取得不可になり得る
-- 1 日あたりの生データ量 (推測): slot 間隔約 0.4 秒 → 約 216000 slot/日。
-  1 block あたり全トランザクション込みで約 50〜300 KB とすると非圧縮で約 11〜65 GB/日、
-  gzip で約 2〜15 GB/日。実際値は manifest の `db_bytes` / `gzip_bytes` から算出。
+- 実測 (100 slot, `transaction_details:full`): `db_bytes=300898463` (約 287 MiB)、
+  `gzip_bytes=59643034` (約 57 MiB)、`tx_count=41932`。1 block 平均約 3 MB 非圧縮 / 0.6 MB gzip。
+- 1 日あたりの生データ量 (推測、上記実測からの外挿): slot 間隔約 0.4 秒 → 約 216000 slot/日。
+  非圧縮約 650 GB/日、gzip 約 129 GB/日。実際値は manifest の `db_bytes` / `gzip_bytes` から算出。
