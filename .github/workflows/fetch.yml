@@ -1,0 +1,59 @@
+name: Fetch Solana blocks
+
+on:
+  workflow_dispatch:
+    inputs:
+      first_slot:
+        description: "First slot to fetch"
+        required: true
+        default: "473601205"
+      slot_count:
+        description: "Number of consecutive slots (1-100000, single job loop)"
+        required: true
+        default: "1000"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: solana-block-chunks-release
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch blocks -> gzip + manifest
+        env:
+          FIRST_SLOT: ${{ inputs.first_slot }}
+          SLOT_COUNT: ${{ inputs.slot_count }}
+        run: |
+          python fetch_blocks.py \
+            --first-slot "$FIRST_SLOT" \
+            --slot-count "$SLOT_COUNT" \
+            --out-dir out \
+            --sleep 0.2
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=$(python -c 'import json; print(json.load(open("out/manifest.json"))["tag"])')
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/"$TAG".json.gz out/manifest.json --clobber
+          else
+            gh release create "$TAG" \
+              out/"$TAG".json.gz out/manifest.json \
+              --title "$TAG" \
+              --notes-file out/release-notes.md
+          fi
